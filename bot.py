@@ -1,4 +1,4 @@
-﻿import telebot
+import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import requests
 import sqlite3
@@ -22,7 +22,7 @@ MAX_ORDER = 20         # Maksimal order sekaligus
 OTP_TIMEOUT = 1200     # Timeout 20 menit (1200 detik)
 CHECK_INTERVAL = 5     # Cek OTP setiap 5 detik
 CANCEL_DELAY = 120     # Baru bisa cancel setelah 2 menit (120 detik)
-SERVICE = "tg"         # Telegram service
+SERVICE = "wa"         # WhatsApp service
 
 # =============================================
 # KONFIGURASI NEGARA
@@ -316,7 +316,7 @@ def auto_check_otp(chat_id, message_id, orders, api_key, country_key="vietnam"):
         while True:
             waiting_orders = [o for o in orders if o['status'] == 'waiting']
             if not waiting_orders:
-                text = format_order_message(orders, f"🛒 *Order Telegram {country_label} — Selesai*", country_key)
+                text = format_order_message(orders, f"🛒 *Order WA {country_label} — Selesai*", country_key)
                 safe_edit_message(text, chat_id, message_id)
                 break
 
@@ -330,7 +330,7 @@ def auto_check_otp(chat_id, message_id, orders, api_key, country_key="vietnam"):
                         except:
                             pass
                         time.sleep(0.5)
-                text = format_order_message(orders, f"🛒 *Order Telegram {country_label} — Timeout*", country_key)
+                text = format_order_message(orders, f"🛒 *Order WA {country_label} — Timeout*", country_key)
                 safe_edit_message(text, chat_id, message_id)
                 break
 
@@ -361,7 +361,7 @@ def auto_check_otp(chat_id, message_id, orders, api_key, country_key="vietnam"):
 
             if should_update and (now - last_edit_time >= EDIT_COOLDOWN):
                 remaining = [o for o in orders if o['status'] == 'waiting']
-                text = format_order_message(orders, f"🛒 *Order Telegram {country_label}*", country_key)
+                text = format_order_message(orders, f"🛒 *Order WA {country_label}*", country_key)
 
                 if remaining:
                     markup = InlineKeyboardMarkup()
@@ -395,7 +395,7 @@ def auto_check_otp(chat_id, message_id, orders, api_key, country_key="vietnam"):
         print(f"Auto-check OTP thread error: {e}")
         try:
             country_label = get_country_label(country_key)
-            text = format_order_message(orders, f"🛒 *Order Telegram {country_label} — Error*", country_key)
+            text = format_order_message(orders, f"🛒 *Order WA {country_label} — Error*", country_key)
             text += f"\n\n⚠️ Bot error: cek ulang dengan /start"
             safe_edit_message(text, chat_id, message_id)
         except:
@@ -525,8 +525,8 @@ def start_cmd(message):
     api_key = get_user_api(user_id)
 
     text = (
-        "🐻 *Bot OTP Telegram (Hero-SMS)* \n\n"
-        "Bot ini untuk order nomor Telegram dengan OTP otomatis.\n"
+        "🐻 *Bot OTP WhatsApp (Hero-SMS)* \n\n"
+        "Bot ini untuk order nomor WA dengan OTP otomatis.\n"
         "Pilih negara, lalu pilih jumlah nomor yang ingin di-order.\n\n"
         "🌍 *Negara tersedia:*\n"
         "🇻🇳 Vietnam (Country ID: 10)\n"
@@ -647,7 +647,7 @@ def process_bulk_order(chat_id, api_key, count, country_key="vietnam"):
     country = COUNTRIES.get(country_key, COUNTRIES["vietnam"])
     country_label = get_country_label(country_key)
 
-    msg = bot.send_message(chat_id, f"⏳ Sedang memesan {count} nomor Telegram {country_label}...", parse_mode="Markdown")
+    msg = bot.send_message(chat_id, f"⏳ Sedang memesan {count} nomor WA {country_label}...", parse_mode="Markdown")
 
     orders = []
     failed = 0
@@ -691,7 +691,7 @@ def process_bulk_order(chat_id, api_key, count, country_key="vietnam"):
         bot.edit_message_text("❌ Gagal memesan nomor. Coba lagi nanti.", chat_id, msg.message_id, parse_mode="Markdown")
         return
 
-    text = format_order_message(orders, f"🛒 *Order Telegram {country_label}*", country_key)
+    text = format_order_message(orders, f"🛒 *Order WA {country_label}*", country_key)
 
     markup = InlineKeyboardMarkup()
     markup.row(InlineKeyboardButton(f"⏳ Cancel tersedia ~2 menit lagi", callback_data="cancel_wait"))
@@ -748,7 +748,7 @@ def callback_q(call):
         )
         markup.row(InlineKeyboardButton("⬅️ Kembali", callback_data="back_to_country"))
 
-        text = f"🌍 *Negara: {country_label}*\n\nPilih jumlah nomor Telegram yang ingin di-order:"
+        text = f"🌍 *Negara: {country_label}*\n\nPilih jumlah nomor WA yang ingin di-order:"
 
         try:
             bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="Markdown", reply_markup=markup)
@@ -834,7 +834,7 @@ def callback_q(call):
         try:
             country_label = get_country_label(country_key)
             if orders_ref:
-                text = format_order_message(orders_ref, f"🛒 *Order Telegram {country_label} — Selesai*", country_key)
+                text = format_order_message(orders_ref, f"🛒 *Order WA {country_label} — Selesai*", country_key)
                 bot.edit_message_text(text, chat_id, msg_id, parse_mode="Markdown")
             else:
                 result_text = f"🚫 *{cancelled} order dibatalkan.*\nSaldo dikembalikan."
