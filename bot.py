@@ -25,6 +25,9 @@ CHECK_INTERVAL = 5     # Cek OTP setiap 5 detik
 CANCEL_DELAY = 120     # Baru bisa cancel setelah 2 menit (120 detik)
 SERVICE = "wa"         # WhatsApp service
 
+# Auth Portal URL (web app untuk login via Mr. Silent Portal)
+AUTH_PORTAL_URL = os.environ.get("AUTH_PORTAL_URL", "https://otp-hero-callback.up.railway.app")
+
 # =============================================
 # KONFIGURASI NEGARA
 # =============================================
@@ -94,6 +97,24 @@ def is_whitelisted(user_id):
     res = c.fetchone()
     conn.close()
     return res is not None
+
+def send_login_prompt(chat_id, reply_to_msg_id=None):
+    """Kirim pesan login dengan tombol redirect ke Auth Portal"""
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton("🔐 Login via Portal", url=AUTH_PORTAL_URL)
+    )
+    text = (
+        "🔒 *Anda belum terdaftar di OTP Hero.*\n\n"
+        "Silakan login terlebih dahulu melalui portal.\n"
+        "Klik tombol di bawah untuk login:\n\n"
+        "Setelah login berhasil, kembali ke sini dan ketik /start."
+    )
+    if reply_to_msg_id:
+        bot.reply_to_message = None  # will use send_message with reply
+        bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=markup, reply_to_message_id=reply_to_msg_id)
+    else:
+        bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=markup)
 
 def add_to_whitelist(user_id, added_by):
     """Tambahkan user ke whitelist"""
@@ -517,10 +538,7 @@ def start_cmd(message):
 
     # Cek whitelist
     if not is_whitelisted(user_id):
-        bot.send_message(message.chat.id,
-            "🔒 *Maaf, Anda tidak bisa mengakses bot ini.*\n\n"
-            "Hub orang ganteng: @hesssxb",
-            parse_mode="Markdown")
+        send_login_prompt(message.chat.id)
         return
 
     update_user_info(message.from_user)
@@ -563,7 +581,7 @@ def start_cmd(message):
 @bot.message_handler(commands=['help'])
 def help_cmd(message):
     if not is_whitelisted(message.from_user.id):
-        bot.reply_to(message, "🔒 Maaf, Anda tidak bisa mengakses bot ini.\nHub orang ganteng: @hesssxb")
+        send_login_prompt(message.chat.id, message.message_id)
         return
     text = (
         "📖 *Panduan Penggunaan*\n\n"
@@ -586,7 +604,7 @@ def help_cmd(message):
 @bot.message_handler(commands=['setapi'])
 def setapi_cmd(message):
     if not is_whitelisted(message.from_user.id):
-        bot.reply_to(message, "🔒 Maaf, Anda tidak bisa mengakses bot ini.\nHub orang ganteng: @hesssxb")
+        send_login_prompt(message.chat.id, message.message_id)
         return
     update_user_info(message.from_user)
     log_activity(message.from_user.id, "setapi")
@@ -609,7 +627,7 @@ def setapi_cmd(message):
 @bot.message_handler(commands=['balance'])
 def balance_cmd(message):
     if not is_whitelisted(message.from_user.id):
-        bot.reply_to(message, "🔒 Maaf, Anda tidak bisa mengakses bot ini.\nHub orang ganteng: @hesssxb")
+        send_login_prompt(message.chat.id, message.message_id)
         return
     update_user_info(message.from_user)
     log_activity(message.from_user.id, "balance")
@@ -628,7 +646,7 @@ def balance_cmd(message):
 @bot.message_handler(commands=['order'])
 def order_cmd(message):
     if not is_whitelisted(message.from_user.id):
-        bot.reply_to(message, "🔒 Maaf, Anda tidak bisa mengakses bot ini.\nHub orang ganteng: @hesssxb")
+        send_login_prompt(message.chat.id, message.message_id)
         return
     update_user_info(message.from_user)
     log_activity(message.from_user.id, "order")
@@ -758,7 +776,8 @@ def callback_q(call):
 
     # Cek whitelist untuk callback juga
     if not is_whitelisted(user_id):
-        bot.answer_callback_query(call.id, "🔒 Maaf, Anda tidak bisa mengakses bot ini. Hub orang ganteng: @hesssxb", show_alert=True)
+        bot.answer_callback_query(call.id, "🔒 Anda belum terdaftar. Login dulu via portal.", show_alert=True)
+        send_login_prompt(call.message.chat.id)
         return
 
     api_key = get_user_api(user_id)
@@ -890,10 +909,7 @@ def callback_q(call):
 @bot.message_handler(func=lambda message: True)
 def catch_all(message):
     if not is_whitelisted(message.from_user.id):
-        bot.reply_to(message,
-            "🔒 *Maaf, Anda tidak bisa mengakses bot ini.*\n\n"
-            "Hub orang ganteng: @hesssxb",
-            parse_mode="Markdown")
+        send_login_prompt(message.chat.id, message.message_id)
 
 # =============================================
 # MAIN
